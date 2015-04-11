@@ -1,37 +1,47 @@
 package com.moshx.reveal;
 
-import android.support.v7.app.ActionBarActivity;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.support.v7.app.ActionBarActivity;
+import android.view.MotionEvent;
+import android.view.View;
+import com.moshx.reveallibrary.ColorRevealDrawable;
+import com.moshx.reveallibrary.RevealAnimator;
 
 public class MainActivity extends ActionBarActivity {
 
-  @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  private ColorRevealDrawable drawable;
+
+  @Override protected void onCreate(Bundle savedInstanceState) {
+
     super.onCreate(savedInstanceState);
+
     setContentView(R.layout.activity_main);
+
+    final View contentView = findViewById(R.id.content);
+    contentView.setBackgroundResource(R.mipmap.ic_launcher);
+    contentView.setBackgroundDrawable(drawable = new ColorRevealDrawable());
+
+    contentView.setOnTouchListener(new View.OnTouchListener() {
+      @Override public boolean onTouch(View v, MotionEvent event) {
+        drawable.setPivot(event.getX(), event.getY());
+        return true;
+      }
+    });
   }
 
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    // Inflate the menu; this adds items to the action bar if it is present.
-    getMenuInflater().inflate(R.menu.menu_main, menu);
-    return true;
+  public void enlargeReveal(View v) {
+    RevealAnimator animator = new RevealAnimator(drawable);
+    animator.radius(1000).duration(1000).alpha(1).color(Color.BLUE).start();
   }
 
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    // Handle action bar item clicks here. The action bar will
-    // automatically handle clicks on the Home/Up button, so long
-    // as you specify a parent activity in AndroidManifest.xml.
-    int id = item.getItemId();
+  public void reduceReveal(View v) {
+    RevealAnimator animator=new RevealAnimator(drawable);
+    animator.radius(100).alpha(0).duration(1000).color(Color.RED).start();
+    //  drawable.setDirectionReduce().start();
+  }
 
-    //noinspection SimplifiableIfStatement
-    if (id == R.id.action_settings) {
-      return true;
-    }
-
-    return super.onOptionsItemSelected(item);
+  public void stopReveal(View v) {
+    //drawable.stop();
   }
 }
