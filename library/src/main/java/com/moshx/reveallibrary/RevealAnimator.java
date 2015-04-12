@@ -5,7 +5,9 @@ import android.animation.AnimatorSet;
 import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
 import android.util.Log;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by M.Ersan on 4/5/15.
@@ -21,6 +23,7 @@ public class RevealAnimator {
   static final int ALPHA = 0x0040;
 
   private HashMap<Integer, Animator> animators = new HashMap<>();
+  private final List<Animator.AnimatorListener> listeners = new ArrayList<>();
 
   private final RevealDrawable mDrawable;
   private long mDuration = 0;
@@ -30,46 +33,41 @@ public class RevealAnimator {
   }
 
   public RevealAnimator alpha(float fromValue, float toValue) {
-    //TODO
-    return this;
-  }
-
-  public RevealAnimator alpha(float alpha) {
-    int nextValue = (int) Math.ceil(alpha * 255);
-    int currentValue = mDrawable.getAlpha();
-
-    Log.d("Mosh123", "Alpha:" + currentValue + "-->" + nextValue);
-
+    int currentValue = (int) Math.ceil(fromValue * 255f);
+    int nextValue = (int) Math.ceil(toValue * 255);
     ObjectAnimator animator =
         ObjectAnimator.ofInt(mDrawable, RevealDrawable.ALPHA, currentValue, nextValue);
     animators.put(ALPHA, animator);
     return this;
   }
 
+  public RevealAnimator alpha(float alpha) {
+    float from = mDrawable.getAlpha() / 255f;
+    float next = alpha;
+    return alpha(from, next);
+  }
+
   public RevealAnimator alphaBy(float alpha) {
-    int nextValue = mDrawable.getAlpha() + (int) Math.ceil(alpha * 255);
-    int currentValue = mDrawable.getAlpha();
-    ObjectAnimator animator =
-        ObjectAnimator.ofInt(mDrawable, RevealDrawable.ALPHA, nextValue, currentValue);
-    animators.put(ALPHA, animator);
+    float from = mDrawable.getAlpha() / 255f;
+    float next = (mDrawable.getAlpha() / 255f) + alpha;
+    return alpha(from, next);
+  }
+
+  public RevealAnimator radius(float from, float to) {
+    ObjectAnimator animator = ObjectAnimator.ofFloat(mDrawable, RevealDrawable.RADIUS, from, to);
+    animators.put(RADIUS, animator);
     return this;
   }
 
   public RevealAnimator radius(float radius) {
     float currentValue = mDrawable.getRadius();
-    ObjectAnimator animator =
-        ObjectAnimator.ofFloat(mDrawable, RevealDrawable.RADIUS, currentValue, radius);
-    animators.put(RADIUS, animator);
-    return this;
+    return radius(currentValue, radius);
   }
 
   public RevealAnimator radiusBy(float radius) {
-    float currentValue = mDrawable.getRadius();
-    float nextValue = currentValue - radius;
-    ObjectAnimator animator =
-        ObjectAnimator.ofFloat(mDrawable, RevealDrawable.RADIUS, currentValue, nextValue);
-    animators.put(RADIUS, animator);
-    return this;
+    float from = mDrawable.getRadius();
+    float next = from - radius;
+    return radius(from, next);
   }
 
   public RevealAnimator color(int color) {
@@ -87,16 +85,27 @@ public class RevealAnimator {
   }
 
   public void start() {
-
     if (animators.size() <= 0) {
       return;
     }
 
-    Animator[] animatorsArray = animators.values().toArray(new Animator[] { });
+    Animator[] animatorsArray = animators.values().toArray(new Animator[] {});
 
     AnimatorSet set = new AnimatorSet();
     set.playTogether(animatorsArray);
     set.setDuration(mDuration);
+    if (!listeners.isEmpty()) {
+      for (Animator.AnimatorListener ls : listeners) {
+        set.addListener(ls);
+      }
+    }
+    animators.clear();
+    listeners.clear();
     set.start();
+  }
+
+  public RevealAnimator addListener(Animator.AnimatorListener listener) {
+    listeners.add(listener);
+    return this;
   }
 }

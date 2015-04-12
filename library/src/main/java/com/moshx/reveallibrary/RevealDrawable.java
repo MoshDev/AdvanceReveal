@@ -168,4 +168,13 @@ public abstract class RevealDrawable extends Drawable {
   public Paint getPaint() {
     return mPaint;
   }
+
+  private RevealAnimator animator;
+
+  public RevealAnimator animat() {
+    if (animator == null) {
+      animator = new RevealAnimator(this);
+    }
+    return animator;
+  }
 }
