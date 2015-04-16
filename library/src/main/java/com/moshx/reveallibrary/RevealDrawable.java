@@ -3,8 +3,8 @@ package com.moshx.reveallibrary;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
-import android.util.Log;
 import android.util.Property;
 
 /**
@@ -70,6 +70,18 @@ public abstract class RevealDrawable extends Drawable {
         }
       };
 
+  public static final Property<RevealDrawable, PointF> PIVOT =
+      new Property<RevealDrawable, PointF>((Class<PointF>) PointF[].class.getComponentType(),
+          "pivot") {
+        @Override public void set(RevealDrawable object, PointF value) {
+          object.setPivot(value);
+        }
+
+        @Override public PointF get(RevealDrawable object) {
+          return new PointF(object.pivotX, object.pivotY);
+        }
+      };
+
   protected Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   protected float radius = 0f;
   protected float pivotX, pivotY;
@@ -81,15 +93,11 @@ public abstract class RevealDrawable extends Drawable {
   protected abstract void onInitPaint(Paint paint);
 
   @Override public void setAlpha(int alpha) {
-
-    System.out.println("setAlpha = " + alpha);
-
     mPaint.setAlpha(alpha);
     invalidateSelf();
   }
 
   @Override public int getAlpha() {
-    System.out.println("getAlpha = " + mPaint.getAlpha());
     return mPaint.getAlpha();
   }
 
@@ -145,6 +153,13 @@ public abstract class RevealDrawable extends Drawable {
   public RevealDrawable setPivot(float pivotX, float pivotY) {
     this.pivotX = pivotX;
     this.pivotY = pivotY;
+    invalidateSelf();
+    return this;
+  }
+
+  public RevealDrawable setPivot(PointF point) {
+    this.pivotX = point.x;
+    this.pivotY = point.y;
     invalidateSelf();
     return this;
   }
