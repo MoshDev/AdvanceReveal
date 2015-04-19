@@ -70,7 +70,4 @@ public class MainActivity extends ActionBarActivity {
     }).start();
   }
 
-  public void cancelReveal(View v) {
-    drawable.animat().cancel();
-  }
 }

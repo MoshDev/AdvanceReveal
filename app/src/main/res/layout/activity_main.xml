@@ -20,13 +20,7 @@
       android:text="Reduce"
       android:onClick="reduceReveal"
       />
-  <Button
-      style="?android:attr/buttonStyleSmall"
-      android:layout_width="100dp"
-      android:layout_height="wrap_content"
-      android:text="Cancel"
-      android:onClick="cancelReveal"
-      />
+
   <View
       android:layout_width="match_parent"
       android:background="#F00"
