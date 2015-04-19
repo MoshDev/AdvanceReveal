@@ -58,19 +58,19 @@ public abstract class RevealDrawable extends Drawable {
         }
       };
 
-  public static final Property<RevealDrawable, Integer> ALPHA =
-      new Property<RevealDrawable, Integer>(Integer.TYPE, "alpha") {
+  public static final Property<RevealDrawable, Float> ALPHA =
+      new Property<RevealDrawable, Float>(Float.TYPE, "alphaFloat") {
 
-        @Override public void set(RevealDrawable object, Integer value) {
-          object.setAlpha(value);
+        @Override public void set(RevealDrawable object, Float value) {
+          object.setAlphaFloat(value);
         }
 
-        @Override public Integer get(RevealDrawable object) {
-          return object.getAlpha();
+        @Override public Float get(RevealDrawable object) {
+          return object.getAlphaFloat();
         }
       };
 
-  public static final Property<RevealDrawable, PointF> PIVOT =
+  public static final Property<RevealDrawable, PointF> PATH =
       new Property<RevealDrawable, PointF>((Class<PointF>) PointF[].class.getComponentType(),
           "pivot") {
         @Override public void set(RevealDrawable object, PointF value) {
@@ -97,8 +97,17 @@ public abstract class RevealDrawable extends Drawable {
     invalidateSelf();
   }
 
+  public void setAlphaFloat(float alpha) {
+    int alphaInt = (int) Math.ceil(alpha * 255f);
+    setAlpha(alphaInt);
+  }
+
   @Override public int getAlpha() {
     return mPaint.getAlpha();
+  }
+
+  public float getAlphaFloat() {
+    return (float) Math.floor(mPaint.getAlpha() / 255f);
   }
 
   @Override public void setColorFilter(ColorFilter cf) {
@@ -158,10 +167,7 @@ public abstract class RevealDrawable extends Drawable {
   }
 
   public RevealDrawable setPivot(PointF point) {
-    this.pivotX = point.x;
-    this.pivotY = point.y;
-    invalidateSelf();
-    return this;
+    return setPivot(point.x, point.y);
   }
 
   public RevealDrawable setRadius(float radius) {
@@ -184,12 +190,7 @@ public abstract class RevealDrawable extends Drawable {
     return mPaint;
   }
 
-  private RevealAnimator animator;
-
   public RevealAnimator animat() {
-    if (animator == null) {
-      animator = new RevealAnimator(this);
-    }
-    return animator;
+    return new RevealAnimator(this);
   }
 }

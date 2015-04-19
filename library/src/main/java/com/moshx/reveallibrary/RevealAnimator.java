@@ -2,21 +2,18 @@ package com.moshx.reveallibrary;
 
 import android.animation.Animator;
 import android.animation.AnimatorSet;
-import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
-import android.animation.PointFEvaluator;
-import android.animation.TypeConverter;
-import android.animation.TypeEvaluator;
-import android.animation.ValueAnimator;
+import android.animation.TimeInterpolator;
+import android.annotation.TargetApi;
 import android.graphics.Path;
-import android.graphics.PathMeasure;
-import android.graphics.PointF;
-import android.util.Log;
-import android.view.animation.AccelerateDecelerateInterpolator;
+import android.os.Build;
 import android.view.animation.LinearInterpolator;
+import com.moshx.reveallibrary.property.AnimationProperty;
+import com.moshx.reveallibrary.property.ColorAnimationProperty;
+import com.moshx.reveallibrary.property.FloatAnimationProperty;
+import com.moshx.reveallibrary.property.PathAnimationProperty;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * Created by M.Ersan on 4/5/15.
@@ -29,105 +26,73 @@ public class RevealAnimator {
   static final int RADIUS = 0x0008;
   static final int COLOR = 0x0010;
   static final int ALPHA = 0x0020;
+  static final int PATH = 0x0030;
 
-  private RevealAnimator nextAnimation;
+  static final boolean IS_KITKAT = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
 
-  private HashMap<Integer, Animator> animators = new HashMap<>();
-  private final List<Animator.AnimatorListener> listeners = new ArrayList<>();
-
+  private HashMap<Integer, AnimationProperty> properties = new HashMap<>();
   private final RevealDrawable mDrawable;
-  private long mDuration = 0;
+  private AnimatorSet animatorSet = new AnimatorSet();
+  private Runnable endAction, startAction;
+  private RevealAnimator nextAnimator;
+  private TimeInterpolator interpolator = new LinearInterpolator();
 
   public RevealAnimator(RevealDrawable drawable) {
     mDrawable = drawable;
-  }
-
-  public RevealAnimator alpha(float fromValue, float toValue) {
-    int currentValue = (int) Math.ceil(fromValue * 255f);
-    int nextValue = (int) Math.ceil(toValue * 255);
-    ObjectAnimator animator =
-        ObjectAnimator.ofInt(mDrawable, RevealDrawable.ALPHA, currentValue, nextValue);
-    animators.put(ALPHA, animator);
-    return this;
+    animatorSet.setDuration(800);
+    animatorSet.addListener(internalAnimatorListener);
   }
 
   public RevealAnimator alpha(float alpha) {
-    float from = mDrawable.getAlpha() / 255f;
-    float next = alpha;
-    return alpha(from, next);
+    FloatAnimationProperty property = new FloatAnimationProperty(RevealDrawable.ALPHA, alpha);
+    properties.put(ALPHA, property);
+    return this;
   }
 
   public RevealAnimator alphaBy(float alpha) {
-    float from = mDrawable.getAlpha() / 255f;
-    float next = (mDrawable.getAlpha() / 255f) + alpha;
-    return alpha(from, next);
-  }
-
-  public RevealAnimator radius(float from, float to) {
-    ObjectAnimator animator = ObjectAnimator.ofFloat(mDrawable, RevealDrawable.RADIUS, from, to);
-    animators.put(RADIUS, animator);
-    return this;
+    float next = mDrawable.getAlphaFloat() + alpha;
+    return alpha(next);
   }
 
   public RevealAnimator radius(float radius) {
-    float currentValue = mDrawable.getRadius();
-    return radius(currentValue, radius);
-  }
-
-  public RevealAnimator radiusBy(float radius) {
-    float from = mDrawable.getRadius();
-    float next = from + radius;
-    return radius(from, next);
-  }
-
-  public RevealAnimator color(int color) {
-    int currentColor = mDrawable.getColor();
-    ObjectAnimator animator =
-        ObjectAnimator.ofObject(mDrawable, RevealDrawable.COLOR, new ArgbEvaluator(), currentColor,
-            color);
-    animators.put(COLOR, animator);
+    FloatAnimationProperty property = new FloatAnimationProperty(RevealDrawable.RADIUS, radius);
+    properties.put(RADIUS, property);
     return this;
   }
 
-  public RevealAnimator duration(long duration) {
-    mDuration = duration;
+  public RevealAnimator radiusBy(float radius) {
+    float next = mDrawable.getRadius() + radius;
+    return radius(next);
+  }
+
+  public RevealAnimator color(int color) {
+    ColorAnimationProperty property = new ColorAnimationProperty(RevealDrawable.COLOR, color);
+    properties.put(COLOR, property);
     return this;
   }
 
   public RevealAnimator pivotX(float x) {
-    float from = mDrawable.getPivotX();
-    return pivotX(from, x);
+    properties.remove(PATH);
+    FloatAnimationProperty property = new FloatAnimationProperty(RevealDrawable.PIVOT_X, x);
+    properties.put(PIVOT_X, property);
+    return this;
   }
 
   public RevealAnimator pivotXBy(float x) {
-    float from = mDrawable.getPivotX();
-    float next = from + x;
-    return pivotX(from, next);
-  }
-
-  public RevealAnimator pivotX(float from, float to) {
-    animators.remove(PIVOT_X);
-    ObjectAnimator animator = ObjectAnimator.ofFloat(mDrawable, RevealDrawable.PIVOT_X, from, to);
-    animators.put(PIVOT_X, animator);
-    return this;
+    float next = mDrawable.getPivotX() + x;
+    return pivotX(next);
   }
 
   public RevealAnimator pivotY(float y) {
-    float from = mDrawable.getPivotY();
-    return pivotY(from, y);
+    properties.remove(PATH);
+    FloatAnimationProperty property = new FloatAnimationProperty(RevealDrawable.PIVOT_Y, y);
+    properties.put(PIVOT_Y, property);
+    return this;
   }
 
   public RevealAnimator pivotYBy(float y) {
-    float from = mDrawable.getPivotY();
-    float next = from + y;
-    return pivotY(from, next);
-  }
-
-  public RevealAnimator pivotY(float from, float to) {
-    animators.remove(PIVOT_Y);
-    ObjectAnimator animator = ObjectAnimator.ofFloat(mDrawable, RevealDrawable.PIVOT_Y, from, to);
-    animators.put(PIVOT_Y, animator);
-    return this;
+    float next = mDrawable.getPivotY() + y;
+    return pivotY(next);
   }
 
   public RevealAnimator pivot(float x, float y) {
@@ -136,45 +101,147 @@ public class RevealAnimator {
   }
 
   public RevealAnimator path(Path path) {
-
-    animators.remove(PIVOT_X);
-    animators.remove(PIVOT_Y);
-
-    ObjectAnimator animator =
-        ObjectAnimator.ofObject(mDrawable, RevealDrawable.PIVOT, new PathEvaluator(path),
-            new PointF(0, 0), new PointF(1, 1));
-    animators.put(PIVOT_X, animator);
+    properties.remove(PIVOT_X);
+    properties.remove(PIVOT_Y);
+    PathAnimationProperty property = new PathAnimationProperty(RevealDrawable.PATH, path);
+    properties.put(PATH, property);
     return this;
+  }
+
+  public void build() {
+
+    Animator[] animatorsArray = new Animator[properties.size()];
+    AnimationProperty[] propertiesArray = properties.values().toArray(new AnimationProperty[] {});
+    for (int i = 0; i < animatorsArray.length; i++) {
+      ObjectAnimator anim = propertiesArray[i].build(mDrawable);
+      anim.setInterpolator(interpolator);
+      animatorsArray[i] = anim;
+    }
+    animatorSet.playTogether(animatorsArray);
+
+    properties.clear();
   }
 
   public void start() {
-    if (animators.size() <= 0) {
+    if (properties.size() <= 0) {
       return;
     }
+    build();
+    animatorSet.start();
+  }
 
-    Animator[] animatorsArray = animators.values().toArray(new Animator[] {});
+  public long getStartDelay() {
+    return animatorSet.getStartDelay();
+  }
 
-    AnimatorSet set = new AnimatorSet();
-    set.playTogether(animatorsArray);
-    set.setDuration(mDuration);
-    set.setInterpolator(new LinearInterpolator());
-    if (!listeners.isEmpty()) {
-      for (Animator.AnimatorListener ls : listeners) {
-        set.addListener(ls);
+  public RevealAnimator startDelay(long startDelay) {
+    animatorSet.setStartDelay(startDelay);
+    return this;
+  }
+
+  public RevealAnimator duration(long duration) {
+    animatorSet.setDuration(duration);
+    return this;
+  }
+
+  @TargetApi(Build.VERSION_CODES.KITKAT) public void pause() {
+    if (IS_KITKAT) {
+      animatorSet.pause();
+    }
+  }
+
+  @TargetApi(Build.VERSION_CODES.KITKAT) public void resume() {
+    if (IS_KITKAT) {
+      animatorSet.resume();
+    }
+  }
+
+  public long getDuration() {
+    return animatorSet.getDuration();
+  }
+
+  public RevealAnimator interpolator(TimeInterpolator value) {
+    if (value == null) {
+      value = new LinearInterpolator();
+    }
+    interpolator = value;
+    return this;
+  }
+
+  @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2) public TimeInterpolator getInterpolator() {
+    return animatorSet.getInterpolator();
+  }
+
+  public void cancel() {
+    animatorSet.cancel();
+  }
+
+  public void end() {
+    animatorSet.end();
+  }
+
+  public boolean isRunning() {
+    return animatorSet.isRunning();
+  }
+
+  public boolean isStarted() {
+    return animatorSet.isStarted();
+  }
+
+  public RevealAnimator withStartAction(Runnable startAction) {
+    this.startAction = startAction;
+    return this;
+  }
+
+  public RevealAnimator withEndAction(Runnable endAction) {
+    this.endAction = endAction;
+    return this;
+  }
+
+  public RevealAnimator withNextAnim(RevealAnimator anim) {
+    this.nextAnimator = anim;
+    return this;
+  }
+
+  private Animator.AnimatorListener internalAnimatorListener = new Animator.AnimatorListener() {
+
+    public void onAnimationStart(Animator animation) {
+      if (startAction != null) {
+        startAction.run();
       }
     }
-    animators.clear();
-    listeners.clear();
-    set.start();
+
+    public void onAnimationEnd(Animator animation) {
+      if (nextAnimator != null) {
+        nextAnimator.start();
+      }
+      if (endAction != null) {
+        endAction.run();
+      }
+    }
+
+    public void onAnimationCancel(Animator animation) {
+
+    }
+
+    public void onAnimationRepeat(Animator animation) {
+
+    }
+  };
+
+  public void addListener(Animator.AnimatorListener listener) {
+    animatorSet.addListener(listener);
   }
 
-  public RevealAnimator addListener(Animator.AnimatorListener listener) {
-    listeners.add(listener);
-    return this;
+  public void removeListener(Animator.AnimatorListener listener) {
+    animatorSet.removeListener(listener);
   }
 
-  public RevealAnimator afterEnd(RevealAnimator revealAnimator) {
-    nextAnimation = revealAnimator;
-    return this;
+  public ArrayList<Animator.AnimatorListener> getListeners() {
+    return animatorSet.getListeners();
+  }
+
+  public void removeAllListeners() {
+    animatorSet.removeAllListeners();
   }
 }

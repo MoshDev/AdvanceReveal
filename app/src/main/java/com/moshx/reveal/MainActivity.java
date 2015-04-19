@@ -1,22 +1,20 @@
 package com.moshx.reveal;
 
-import android.animation.Animator;
-import android.animation.ObjectAnimator;
 import android.graphics.Color;
-import android.graphics.Path;
-import android.graphics.RectF;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.view.animation.BounceInterpolator;
 import com.moshx.reveallibrary.ColorRevealDrawable;
 import com.moshx.reveallibrary.RevealAnimator;
-import com.moshx.reveallibrary.RevealDrawable;
 
 public class MainActivity extends ActionBarActivity {
 
   private ColorRevealDrawable drawable;
-  View contentView;
+  private View contentView;
+  private float centerX, centerY;
 
   @Override protected void onCreate(Bundle savedInstanceState) {
 
@@ -24,9 +22,9 @@ public class MainActivity extends ActionBarActivity {
 
     setContentView(R.layout.activity_main);
 
-    contentView = findViewById(R.id.content);
-    contentView.setBackgroundResource(R.mipmap.ic_launcher);
+    contentView = findViewById(R.id.content_test);
     contentView.setBackgroundDrawable(drawable = new ColorRevealDrawable());
+    drawable.setPivot(0, 0);
 
     contentView.setOnTouchListener(new View.OnTouchListener() {
       @Override public boolean onTouch(View v, MotionEvent event) {
@@ -34,76 +32,45 @@ public class MainActivity extends ActionBarActivity {
         return true;
       }
     });
+
+    contentView.getViewTreeObserver()
+        .addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+          @Override public void onGlobalLayout() {
+            contentView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+            centerX = contentView.getWidth() / 2;
+            centerY = contentView.getHeight() / 2;
+            drawable.setPivot(centerX, 0);
+          }
+        });
   }
 
   public void enlargeReveal(View v) {
-    drawable.setPivot(contentView.getWidth() / 2, 0);
-    drawable.setRadius(1);
 
-    Path path = new Path();
-    path.moveTo(0, 0);
-    //path.lineTo(contentView.getWidth() / 3, contentView.getHeight() / 2);
-    path.addArc(new RectF(0, 0, contentView.getWidth(), contentView.getHeight() / 2), 0, 180);
+    RevealAnimator animator1 = new RevealAnimator(drawable);
+    animator1.radius(100)
+        .pivot(centerX, contentView.getHeight())
+        .interpolator(new BounceInterpolator())
+        .color(Color.CYAN);
 
-    drawable.animat()
-        .radius(300)
-        .alpha(1f)
-        .path(path)
-        .duration(2000)
-        .addListener(new Animator.AnimatorListener() {
-          @Override public void onAnimationStart(Animator animation) {
+    RevealAnimator animator2 = new RevealAnimator(drawable);
+    animator2.radius(contentView.getHeight() + 100);
 
-          }
+    RevealAnimator animator3 = new RevealAnimator(drawable);
+    animator3.color(Color.YELLOW).duration(2000);
 
-          @Override public void onAnimationEnd(Animator animation) {
-
-            drawable.animat()
-                .radius(contentView.getHeight())
-                .color(Color.GREEN)
-                .duration(1000)
-                .start();
-          }
-
-          @Override public void onAnimationCancel(Animator animation) {
-
-          }
-
-          @Override public void onAnimationRepeat(Animator animation) {
-
-          }
-        })
-        .start();
+    animator1.withNextAnim(animator2.withNextAnim(animator3)).start();
   }
 
   public void reduceReveal(View v) {
 
-    drawable.animat()
-        .radius(100)
-        .color(Color.BLUE)
-        .duration(1000)
-        .addListener(new Animator.AnimatorListener() {
-          @Override public void onAnimationStart(Animator animation) {
-
-          }
-
-          @Override public void onAnimationEnd(Animator animation) {
-            drawable.animat().pivot(contentView.getWidth() / 2, 0).radius(0).alpha(0).start();
-          }
-
-          @Override public void onAnimationCancel(Animator animation) {
-
-          }
-
-          @Override public void onAnimationRepeat(Animator animation) {
-
-          }
-        })
-        .start();
-    //drawable.animat().radius(0).alpha(0).duration(1000).color(Color.RED).pivot(0, 0).start();
-    //  drawable.setDirectionReduce().start();
+    drawable.animat().radius(100).duration(300).color(Color.BLACK).withEndAction(new Runnable() {
+      @Override public void run() {
+        drawable.animat().pivot(contentView.getWidth(), 0).duration(500).radius(10).start();
+      }
+    }).start();
   }
 
-  public void stopReveal(View v) {
-    //drawable.stop();
+  public void cancelReveal(View v) {
+    drawable.animat().cancel();
   }
 }
